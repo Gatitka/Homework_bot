@@ -7,8 +7,7 @@ import telegram
 import time
 from dotenv import load_dotenv
 
-from pprint import pprint
-from telegram.ext import CommandHandler, Updater
+from telegram.ext import Updater
 from logging.handlers import RotatingFileHandler
 
 load_dotenv()
@@ -38,14 +37,18 @@ logger.addHandler(handler)
 
 
 def send_message(bot, message):
+    """Отправка сообщений ботом. Логирование каждого сообщения и ошибок
+    в случае невозможности отправки сообщения."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Бот отправил сообщение: {message}')
     except Exception as error:
-        logger.error(f'Сбой при отправке сообщения ботом: {message}')
+        logger.error(f'Сбой при отправке сообщения ботом: {message}. Ошибка {error}')
         bot.send_message(TELEGRAM_CHAT_ID, error)
 
+
 def get_api_answer(current_timestamp):
+    """Получение API ответа от эндпоинта."""
     timestamp = current_timestamp or int(time.time())
     # timestamp = 0
     params = {'from_date': timestamp}
@@ -67,6 +70,7 @@ def get_api_answer(current_timestamp):
     else:
         response = response.json()
         return response
+
 
 def check_response(response):
     """Проверка ответа API на корректность."""
@@ -94,6 +98,8 @@ def check_response(response):
 
 
 def parse_status(homework):
+    """Статус проверки домашней работы, полученный в API, ищется в словаре
+    HOMEWORK_STATUSES, возвращая значение по ключу-статусу."""
     print('HOMEWORK TYPE -------->', type(homework))
     print(homework)
     homework_name = homework['homework_name']
