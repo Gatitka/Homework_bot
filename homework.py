@@ -38,35 +38,26 @@ logger.addHandler(handler)
 
 def send_message(bot, message):
     """Отправка сообщений ботом. Логирование каждого сообщения и ошибок
-    в случае невозможности отправки сообщения."""
+        в случае невозможности отправки сообщения."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Бот отправил сообщение: {message}')
     except Exception as error:
-        logger.error(f'Сбой при отправке сообщения ботом: {message}. Ошибка {error}')
+        logger.error(f'Сбой при отправке сообщения ботом: '
+                     f'{message}. Ошибка {error}')
         bot.send_message(TELEGRAM_CHAT_ID, error)
 
 
 def get_api_answer(current_timestamp):
     """Получение API ответа от эндпоинта."""
-    timestamp = current_timestamp or int(time.time())
-    # timestamp = 0
+    # timestamp = current_timestamp or int(time.time())
+    timestamp = 0
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    error_text = ('Сбой в работе программы: Эндпоинт {} '
-                  'недоступен. Код ответа API: {}')
-    if response.status_code == 408:
-        message = f'{ENDPOINT} ошибка 408'
-        logger.error(message)
-        raise Exception(message)
-    elif response.status_code == 404:
-        message = f'{ENDPOINT} ошибка 404'
-        logger.error(message)
-        raise Exception(message)
-    elif response.status_code == 500:
-        message = f'{ENDPOINT} ошибка 500'
-        logger.error(message)
-        raise Exception(message)
+    error_text = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
+                  f'недоступен. Код ответа API: {response.status_code}')
+    if response.status_code != 200:
+        raise Exception(error_text)
     else:
         response = response.json()
         return response
@@ -78,30 +69,23 @@ def check_response(response):
     logger.debug(message)
     if not isinstance(response, dict):
         message = 'Ответ от эндпоинта пришел не в формате словаря'
-        logger.error(message)
-        raise Exception(message)
+        raise TypeError(message)
     homeworks = response['homeworks']
     if not isinstance(homeworks, list):
         message = 'Данные homeworks получены не в виде списка'
-        logger.error(message)
-        raise Exception(message)
+        raise TypeError(message)
     if not response['current_date']:
         message = 'Данных current_date нет в ответе эндпоинта'
-        logger.error(message)
-        raise Exception(message)
+        raise KeyError(message)
     if not isinstance(response['current_date'], int):
         message = 'Данные current_date получены не в формате int'
-        logger.error(message)
-        raise Exception(message)
-    else:
-        return homeworks
+        raise TypeError(message)
+    return homeworks
 
 
 def parse_status(homework):
     """Статус проверки домашней работы, полученный в API, ищется в словаре
     HOMEWORK_STATUSES, возвращая значение по ключу-статусу."""
-    print('HOMEWORK TYPE -------->', type(homework))
-    print(homework)
     homework_name = homework['homework_name']
     homework_status = homework['status']
     if homework_status not in HOMEWORK_STATUSES:
@@ -113,7 +97,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """ Доступность токенов."""
+    """Доступность токенов."""
     if all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)) == True:
         return True
     else:
@@ -126,7 +110,10 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     if check_tokens() == False:
-        logger.critical('отсутствие обязательных переменных окружения во время запуска бота, бот остановлен')
+        logger.critical(
+            f'отсутствие обязательных переменных окружения',
+            f'во время запуска бота, бот остановлен'
+        )
         quit()
     send_message(bot, 'Старт')
 
@@ -134,7 +121,6 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             current_timestamp = response.get('current_date')
-            print('current_timestamp------>>>>>>>', current_timestamp)
             homeworks = check_response(response)
             if not homeworks:
                 logger.debug("Статус домашней работы не изменился")
