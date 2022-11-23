@@ -6,8 +6,8 @@ import sys
 import telegram
 import time
 from dotenv import load_dotenv
-
-from telegram.ext import Updater
+from logging.handlers import RotatingFileHandler
+from pprint import pprint
 
 load_dotenv()
 
@@ -16,12 +16,12 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
+RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
-HOMEWORK_STATUSES = {
+HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
@@ -34,10 +34,18 @@ formatter = logging.Formatter('%(asctime)s, %(levelname)s, %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+handler_rfh = RotatingFileHandler(
+    'my_logger.log',
+    maxBytes=50000000,
+    backupCount=5
+)
+formatter = logging.Formatter('%(asctime)s, %(levelname)s, %(message)s')
+handler_rfh.setFormatter(formatter)
+logger.addHandler(handler_rfh)
 
 def send_message(bot, message):
     """ Отправка сообщений ботом. Логирование каждого сообщения и ошибок
-    в случае невозможности отправки сообщения."""
+        в случае невозможности отправки сообщения."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Бот отправил сообщение: {message}')
@@ -49,8 +57,8 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     """Получение API ответа от эндпоинта."""
-    timestamp = current_timestamp or int(time.time())
-    # timestamp = 0
+    # timestamp = current_timestamp or int(time.time())
+    timestamp = 0
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     error_text = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
@@ -59,6 +67,7 @@ def get_api_answer(current_timestamp):
         raise Exception(error_text)
     else:
         response = response.json()
+        pprint(response)
         return response
 
 
@@ -84,14 +93,13 @@ def check_response(response):
 
 def parse_status(homework):
     """Статус проверки домашней работы, полученный в API, ищется в словаре
-    HOMEWORK_STATUSES, возвращая значение по ключу-статусу."""
+        HOMEWORK_VERDICTS, возвращая значение по ключу-статусу."""
     homework_name = homework['homework_name']
     homework_status = homework['status']
-    if homework_status not in HOMEWORK_STATUSES:
+    if homework_status not in HOMEWORK_VERDICTS:
         message = 'Статус домашней работы не определен!'
-        logger.error(message)
         raise Exception(message)
-    verdict = HOMEWORK_STATUSES.get(homework_status)
+    verdict = HOMEWORK_VERDICTS.get(homework_status)
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -105,16 +113,16 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
     if check_tokens() is False:
         logger.critical(
             'отсутствие обязательных переменных окружения',
             'во время запуска бота, бот остановлен'
         )
         quit()
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     send_message(bot, 'Старт')
-
+    current_timestamp = int(time.time())
+    old_error = ''
     while True:
         try:
             response = get_api_answer(current_timestamp)
@@ -127,12 +135,15 @@ def main():
                 logger.info(message)
                 send_message(bot, message)
             send_message(bot, 'Пауза')
-            time.sleep(RETRY_TIME)
 
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
-            time.sleep(RETRY_TIME)
+            logger.error(error)
+            if error != old_error:
+                message = f'Сбой в работе программы: {error}'
+                send_message(bot, message)
+                old_error = error
+        finally:
+            time.sleep(RETRY_PERIOD)
 
 
 if __name__ == '__main__':
