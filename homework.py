@@ -45,8 +45,10 @@ logger.addHandler(handler_rfh)
 
 
 def send_message(bot, message):
-    """ Отправка сообщений ботом. Логирование каждого сообщения и ошибок
-    в случае невозможности отправки сообщения."""
+    """
+    Отправка сообщений ботом. Логирование каждого сообщения и ошибок
+    в случае невозможности отправки сообщения.
+    """
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Бот отправил сообщение: {message}')
@@ -56,7 +58,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(current_timestamp):
-    """Получение API ответа от эндпоинта."""
+    """ Получение API ответа от эндпоинта."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     try:
@@ -69,12 +71,12 @@ def get_api_answer(current_timestamp):
             response = response.json()
             pprint(response)
             return response
-    except requests.exceptions.RequestException as e:
-        raise error(e)
+    except requests.exceptions.RequestException as error:
+        return error
 
 
 def check_response(response):
-    """Проверка ответа API на корректность."""
+    """ Проверка ответа API на корректность."""
     message = 'Начало проерки ответа сервера'
     logger.debug(message)
     if not isinstance(response, dict):
@@ -98,8 +100,10 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """ Статус проверки домашней работы, полученный в API, ищется
-    в словаре HOMEWORK_VERDICTS, возвращая значение по ключу-статусу."""
+    """
+    Статус проверки домашней работы, полученный в API, ищется
+    в словаре HOMEWORK_VERDICTS, возвращая значение по ключу-статусу.
+    """
     if 'homework_name' not in homework:
         message = 'Данных homework_name нет в ответе эндпоинта'
         raise KeyError(message)
@@ -116,7 +120,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """Доступность токенов."""
+    """ Доступность токенов."""
     if all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)) is True:
         return True
     else:
@@ -124,7 +128,7 @@ def check_tokens():
 
 
 def main():
-    """Основная логика работы бота."""
+    """ Основная логика работы бота."""
     if check_tokens() is False:
         logger.critical(
             'отсутствие обязательных переменных окружения',
