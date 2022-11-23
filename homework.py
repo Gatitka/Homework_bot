@@ -29,7 +29,7 @@ HOMEWORK_VERDICTS = {
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.INFO)
+handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s, %(levelname)s, %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -39,22 +39,19 @@ handler_rfh = RotatingFileHandler(
     maxBytes=50000000,
     backupCount=5
 )
+handler_rfh.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s, %(levelname)s, %(message)s')
 handler_rfh.setFormatter(formatter)
 logger.addHandler(handler_rfh)
 
 
 def send_message(bot, message):
-    """
-    Отправка сообщений ботом. Логирование каждого сообщения и ошибок
-    в случае невозможности отправки сообщения.
-    """
+    """Отправка сообщений ботом."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Бот отправил сообщение: {message}')
     except Exception as error:
-        logger.error(f'Сбой при отправке сообщения ботом: '
-                     f'{message}. Ошибка {error}')
+        logger.error(f'Бот не отправил {message}. Ошибка {error}')
 
 
 def get_api_answer(current_timestamp):
@@ -77,7 +74,7 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверка ответа API на корректность."""
-    message = 'Начало проерки ответа сервера'
+    message = 'Начало проверки ответа сервера'
     logger.debug(message)
     if not isinstance(response, dict):
         message = 'Ответ от эндпоинта пришел не в формате словаря'
@@ -85,7 +82,7 @@ def check_response(response):
     if 'homeworks' not in response:
         message = 'Данных homeworks нет в ответе эндпоинта'
         raise KeyError(message)
-    if not response['current_date']:
+    if 'current_date' not in response:
         message = 'Данных current_date нет в ответе эндпоинта'
         raise KeyError(message)
     if not isinstance(response['current_date'], int):
@@ -101,6 +98,7 @@ def check_response(response):
 
 def parse_status(homework):
     """
+    Проверка статуса работы, полученного в API.
     Статус проверки домашней работы, полученный в API, ищется
     в словаре HOMEWORK_VERDICTS, возвращая значение по ключу-статусу.
     """
@@ -148,7 +146,7 @@ def main():
                 logger.debug("Статус домашней работы не изменился")
             else:
                 message = parse_status(homeworks[0])
-                logger.info(message)
+                logger.debug(message)
                 send_message(bot, message)
             send_message(bot, 'Пауза')
 
