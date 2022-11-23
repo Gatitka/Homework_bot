@@ -52,7 +52,6 @@ def send_message(bot, message):
     except Exception as error:
         logger.error(f'Сбой при отправке сообщения ботом: '
                      f'{message}. Ошибка {error}')
-        bot.send_message(TELEGRAM_CHAT_ID, error)
 
 
 def get_api_answer(current_timestamp):
@@ -60,16 +59,18 @@ def get_api_answer(current_timestamp):
     # timestamp = current_timestamp or int(time.time())
     timestamp = 0
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    error_text = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
-                  f'недоступен. Код ответа API: {response.status_code}')
-    if response.status_code != 200:
-        raise Exception(error_text)
-    else:
-        response = response.json()
-        pprint(response)
-        return response
-
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        error_text = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
+                      f'недоступен. Код ответа API: {response.status_code}')
+        if response.status_code != 200:
+            raise Exception(error_text)
+        else:
+            response = response.json()
+            pprint(response)
+            return response
+    except requests.exceptions.RequestException as e:
+        raise error(e)
 
 def check_response(response):
     """Проверка ответа API на корректность."""
@@ -78,15 +79,19 @@ def check_response(response):
     if not isinstance(response, dict):
         message = 'Ответ от эндпоинта пришел не в формате словаря'
         raise TypeError(message)
-    homeworks = response['homeworks']
-    if not isinstance(homeworks, list):
-        message = 'Данные homeworks получены не в виде списка'
-        raise TypeError(message)
+    if 'homeworks' not in response:
+        message = 'Данных homeworks нет в ответе эндпоинта'
+        raise KeyError(message)
     if not response['current_date']:
         message = 'Данных current_date нет в ответе эндпоинта'
         raise KeyError(message)
     if not isinstance(response['current_date'], int):
         message = 'Данные current_date получены не в формате int'
+        raise TypeError(message)
+
+    homeworks = response['homeworks']
+    if not isinstance(homeworks, list):
+        message = 'Данные homeworks получены не в виде списка'
         raise TypeError(message)
     return homeworks
 
@@ -94,6 +99,12 @@ def check_response(response):
 def parse_status(homework):
     """Статус проверки домашней работы, полученный в API, ищется в словаре
         HOMEWORK_VERDICTS, возвращая значение по ключу-статусу."""
+    if 'homework_name' not in homework:
+        message = 'Данных homework_name нет в ответе эндпоинта'
+        raise KeyError(message)
+    if 'status' not in homework:
+        message = 'Данных status нет в ответе эндпоинта'
+        raise KeyError(message)
     homework_name = homework['homework_name']
     homework_status = homework['status']
     if homework_status not in HOMEWORK_VERDICTS:
