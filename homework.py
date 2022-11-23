@@ -58,7 +58,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(current_timestamp):
-    """ Получение API ответа от эндпоинта."""
+    """Получение API ответа от эндпоинта."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     try:
@@ -76,7 +76,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """ Проверка ответа API на корректность."""
+    """Проверка ответа API на корректность."""
     message = 'Начало проерки ответа сервера'
     logger.debug(message)
     if not isinstance(response, dict):
@@ -120,7 +120,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """ Доступность токенов."""
+    """Доступность токенов."""
     if all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)) is True:
         return True
     else:
@@ -128,7 +128,7 @@ def check_tokens():
 
 
 def main():
-    """ Основная логика работы бота."""
+    """Основная логика работы бота."""
     if check_tokens() is False:
         logger.critical(
             'отсутствие обязательных переменных окружения',
