@@ -8,7 +8,6 @@ import time
 from dotenv import load_dotenv
 
 from telegram.ext import Updater
-from logging.handlers import RotatingFileHandler
 
 load_dotenv()
 
@@ -37,8 +36,8 @@ logger.addHandler(handler)
 
 
 def send_message(bot, message):
-    """Отправка сообщений ботом. Логирование каждого сообщения и ошибок
-        в случае невозможности отправки сообщения."""
+    """ Отправка сообщений ботом. Логирование каждого сообщения и ошибок
+    в случае невозможности отправки сообщения."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Бот отправил сообщение: {message}')
@@ -50,8 +49,8 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     """Получение API ответа от эндпоинта."""
-    # timestamp = current_timestamp or int(time.time())
-    timestamp = 0
+    timestamp = current_timestamp or int(time.time())
+    # timestamp = 0
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     error_text = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
@@ -98,7 +97,7 @@ def parse_status(homework):
 
 def check_tokens():
     """Доступность токенов."""
-    if all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)) == True:
+    if all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)) is True:
         return True
     else:
         return False
@@ -106,13 +105,12 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    updater = Updater(token=TELEGRAM_TOKEN)
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
-    if check_tokens() == False:
+    if check_tokens() is False:
         logger.critical(
-            f'отсутствие обязательных переменных окружения',
-            f'во время запуска бота, бот остановлен'
+            'отсутствие обязательных переменных окружения',
+            'во время запуска бота, бот остановлен'
         )
         quit()
     send_message(bot, 'Старт')
