@@ -43,9 +43,10 @@ formatter = logging.Formatter('%(asctime)s, %(levelname)s, %(message)s')
 handler_rfh.setFormatter(formatter)
 logger.addHandler(handler_rfh)
 
+
 def send_message(bot, message):
     """ Отправка сообщений ботом. Логирование каждого сообщения и ошибок
-        в случае невозможности отправки сообщения."""
+    в случае невозможности отправки сообщения."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.debug(f'Бот отправил сообщение: {message}')
@@ -56,8 +57,7 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     """Получение API ответа от эндпоинта."""
-    # timestamp = current_timestamp or int(time.time())
-    timestamp = 0
+    timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
@@ -71,6 +71,7 @@ def get_api_answer(current_timestamp):
             return response
     except requests.exceptions.RequestException as e:
         raise error(e)
+
 
 def check_response(response):
     """Проверка ответа API на корректность."""
@@ -97,8 +98,8 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Статус проверки домашней работы, полученный в API, ищется в словаре
-        HOMEWORK_VERDICTS, возвращая значение по ключу-статусу."""
+    """ Статус проверки домашней работы, полученный в API, ищется
+    в словаре HOMEWORK_VERDICTS, возвращая значение по ключу-статусу."""
     if 'homework_name' not in homework:
         message = 'Данных homework_name нет в ответе эндпоинта'
         raise KeyError(message)
