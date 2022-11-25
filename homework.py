@@ -7,6 +7,8 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
+from exceptions import RequestExceptionError
+
 load_dotenv()
 
 
@@ -36,16 +38,6 @@ def send_message(bot, message):
         logging.error(f'Бот не отправил {message}. Ошибка {error}')
 
 
-class RequestExceptionError(Exception):
-    """Класс исключения при request exception"""
-    def __init__(self, expression, message='Ошибка в выражении'):
-        self.expression = expression
-        self.message = message
-
-    def __str__(self):
-        return f'{self.message} -> {self.expression}'
-
-
 def get_api_answer(current_timestamp):
     """Получение API ответа от эндпоинта."""
     timestamp = current_timestamp or int(time.time())
@@ -55,11 +47,12 @@ def get_api_answer(current_timestamp):
         error_text = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
                       f'недоступен. Код ответа API: {response.status_code}')
         if response.status_code != 200:
-            raise Exception(error_text)
+            raise requests.exceptions.HTTPError(error_text)
         response = response.json()
         return response
-    except requests.exceptions.RequestException as error:
-        raise RequestExceptionError(error)
+    except requests.exceptions.RequestException:
+        raise RequestExceptionError('Проблема с ответом сервера')
+
 
 def check_response(response):
     """Проверка ответа API на корректность."""
@@ -112,9 +105,7 @@ def main():
         quit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     send_message(bot, 'Старт')
-
-    current_timestamp = 1669329639
-    # current_timestamp = int(time.time())
+    current_timestamp = int(time.time())
     old_error = ''
     while True:
         try:
@@ -126,9 +117,7 @@ def main():
                 logging.debug('Статус домашней работы не изменился')
             else:
                 message = parse_status(homeworks[0])
-                logging.debug(f'Бот должен отправить: {message}')
                 send_message(bot, message)
-                logging.debug(f'Бот успешно отправил: {message}')
             send_message(bot, 'Пауза')
 
         except Exception as error:
