@@ -50,9 +50,9 @@ def get_api_answer(current_timestamp):
             raise requests.exceptions.HTTPError(error_text)
         response = response.json()
         return response
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as error:
         raise RequestExceptionError(
-            'Проблема с ответом сервера',
+            f'Проблема с ответом сервера: {error}',
             response,
             params)
 
